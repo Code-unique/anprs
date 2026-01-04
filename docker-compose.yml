@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: anpr-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/processed_images:/app/processed_images
+      - ./backend/static:/app/static
+      - ./ml_model:/app/ml_model
+    environment:
+      - DATABASE_URL=sqlite:///./anpr.db
+      - PYTHONPATH=/app
+      - MODEL_PATH=/app/ml_model
+    restart: unless-stopped
+    networks:
+      - anpr-network
+
+  frontend:
+    build: ./frontend
+    container_name: anpr-frontend
+    ports:
+      - "5173:5173"
+    depends_on:
+      - backend
+    environment:
+      - VITE_API_URL=http://localhost:8000/api
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    restart: unless-stopped
+    networks:
+      - anpr-network
+
+  # Optional: PostgreSQL database
+  # db:
+  #   image: postgres:15
+  #   container_name: anpr-db
+  #   environment:
+  #     POSTGRES_DB: anpr
+  #     POSTGRES_USER: anpr_user
+  #     POSTGRES_PASSWORD: anpr_password
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   networks:
+  #     - anpr-network
+
+  # Optional: Redis for caching
+  # redis:
+  #   image: redis:7-alpine
+  #   container_name: anpr-redis
+  #   ports:
+  #     - "6379:6379"
+  #   networks:
+  #     - anpr-network
+
+networks:
+  anpr-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
